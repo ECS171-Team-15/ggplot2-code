@@ -1,0 +1,97 @@
+---
+title: ''
+author: "Brandon Hom"
+date: "11/7/2021"
+output: pdf_document
+---
+
+```{r}
+library(readxl)
+library(tidyverse)
+library(RColorBrewer)
+library(forcats)
+```
+
+```{r}
+dat <- read_excel('COVID-CT-MetaInfo (1).xlsx')
+dat <- dat %>% filter(!duplicated(`Patient ID`)) 
+dat
+```
+
+```{r}
+dat.cleaned <- dat[!is.na(dat$Age),]
+dat.cleaned <- dat.cleaned %>% filter(Age!='40+') %>% filter(Age!='Young Child')
+dat.cleaned$Age <- as.numeric(dat.cleaned$Age)
+```
+
+
+```{r}
+dat.cleaned$age_groups <- cut(dat.cleaned$Age,seq(0,80,10))
+levels(dat.cleaned$age_groups)
+
+levels(dat.cleaned$age_groups) <- c("0-10","11-20","21-30", "31-40", "41-50",
+                            "51-60", "61-70", "71-80")
+```
+```{r}
+dat.cleaned$Gender <- as.factor(dat.cleaned$Gender)
+dat.cleaned$Gender <- fct_explicit_na(dat.cleaned$Gender, "Unknown")
+```
+
+
+```{r}
+ 
+
+my.cols <- brewer.pal(3, "Pastel2")
+ ggplot(data=dat.cleaned)+
+  geom_bar(aes(age_groups, fill = Gender),col = "black") +
+  #scale_y_continuous(breaks=seq(0,200,50)) +
+  theme_light() +
+  theme(legend.position = "bottom",
+        plot.title = element_text(hjust = 0.5, size=25),
+        plot.subtitle = element_text(hjust = 0.5, size=20),
+        axis.text.y = element_text(size=15),
+        axis.text.x = element_text(size=15),
+        legend.text = element_text(size=15)) +
+  labs(title = "COVID-19 CT Scan", 
+       subtitle = "Bar Graph Counts of Age Groups",
+       x = "Age Groups", y = "Number of Observations")+
+   scale_fill_manual(values = my.cols)
+ggsave("age_groups.jpeg")
+```
+
+
+```{r}
+dat.cleaned.gender <- data %>% 
+  drop_na(Gender) %>%
+  count(Gender) %>%
+  mutate(percent = n/sum(n)) %>% 
+  arrange(percent) %>%
+  mutate(percentage = scales::percent(percent))
+dat.cleaned.gender$Gender <- as.factor(dat.cleaned.gender$Gender) 
+
+
+ggplot(dat=dat.cleaned.gender, aes(x="",y=Gender,fill=Gender))+
+  scale_fill_manual(values=my.cols)+
+  geom_bar(stat='identity', col = "black")+
+  geom_label(aes(label = percentage),
+             position = position_stack(vjust = 0.5),
+             show.legend = FALSE) +
+  coord_polar("y",start=0)+
+  theme_light() +
+  theme(plot.title=element_text(hjust=.5,size=20),
+        plot.subtitle =element_text(hjust=.5,size=20),
+        legend.position = "right",
+        axis.ticks = element_blank(),
+        axis.text=element_blank(),
+        axis.title=element_blank(),
+        panel.grid=element_blank(),
+        legend.key.size=unit(.9,"cm"),
+        panel.border = element_blank())+ 
+  labs(title = "COVID-19 CT Scan", 
+       subtitle = "Pie Chart of Gender Groups")
+ggsave('pie_chart_gender_groups.jpeg')
+```
+
+
+
+
